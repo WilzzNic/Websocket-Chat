@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <title>Title</title>
+    <style>
+        /* .col {
+            border: 1px solid black;
+        } */
+        .col .col-4 {
+            overflow: scroll;
+        }
+        .col {
+            padding: 0%;
+            border: 1px solid black;
+        }
+        /* .card {
+            height: 92vh;
+            overflow: scroll;
+        } */
+        .card .list-group .list-group-item:hover {
+            background-color: gray;
+            color: white;
+        }
+        .navbar .navbar-brand {
+            width: 100%;
+            text-align: center;
+        }
+        .navbar {
+            height: 8vh;
+        }
+        .chat-content {
+            height: 85Vh;
+        }
+        .no-padding {
+            padding: 0;
+        }
+        .input-group {
+            width: 98%;
+        }
+        /* Modal CSS */
+        .modal:before {
+            content: "";
+            display: none;
+            background: rgba(0, 0, 0, 0.6);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 10;
+        }
+        .modal:target:before {
+            display: block;
+        }
+        .modal:target .modal-dialog {
+            -webkit-transform: translate(0, 0);
+            -ms-transform: translate(0, 0);
+            transform: translate(0, 0);
+            top: 20%;
+        }
+        .modal-dialog {
+            background: #fefefe;
+            border: #333333 solid 1px;
+            border-radius: 5px;
+            margin-left: -200px;
+            position: fixed;
+            left: 50%;
+            top: -100%;
+            z-index: 11;
+            width: 360px;
+            -webkit-transform: translate(0, -500%);
+            -ms-transform: translate(0, -500%);
+            transform: translate(0, -500%);
+            -webkit-transition: -webkit-transform 0.3s ease-out;
+            -moz-transition: -moz-transform 0.3s ease-out;
+            -o-transition: -o-transform 0.3s ease-out;
+            transition: transform 0.3s ease-out;
+        }
+        .modal-body {
+            padding: 20px;
+        }
+        .modal-header,
+        .modal-footer {
+            padding: 10px 20px;
+        }
+        .modal-header {
+            border-bottom: #eeeeee solid 1px;
+        }
+        .modal-header h2 {
+            font-size: 20px;
+        }
+        .modal-footer {
+            border-top: #eeeeee solid 1px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <!-- Start of Modal -->
+    <div class="modal" id="modal-one" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h2>Modal in CSS?</h2>
+                <a href="#" class="btn-close" aria-hidden="true">×</a>
+            </div>
+            <div class="modal-body">
+                <p>One modal example here! :D</p>
+            </div>
+            <div class="modal-footer">
+                <a href="#" class="btn">Nice!</a>
+            </div>
+        </div>
+    </div>
+    <!-- End of Modal -->
+    <nav class="navbar navbar-light bg-light">
+        <div class="navbar-brand">Vertx Websocket Chat</div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-2 no-padding" style="height:92vh; overflow-y:scroll;">
+                <div class="card" style="width: 100%;">
+                    <div class="card-header">
+                        People
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item" id="testing">Wilson</li>
+                        <li class="list-group-item" id="testing">Andy</li>
+                        <li class="list-group-item" id="testing">Hasan</li>
+                        <li class="list-group-item" id="testing">Kutu</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-10 no-padding" style="overflow-x:hidden;">
+                <div class="chat-content" style="overflow-y:scroll;">
+                    
+                </div>
+                <div class="input-group" style="position: absolute; bottom:5px; margin-left:5px; margin-right:5px;">
+                    <input type="text" class="form-control" id="message" placeholder="Type a message" aria-label="Type a message" aria-describedby="basic-addon2">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" onclick="sendMessage()" type="button">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        var socket = new WebSocket("ws://localhost:8080")
+        var counter = 0;
+        socket.onmessage = function (ev) {
+            console.log(ev.data);
+            if (ev.data instanceof Blob) {
+                var reader = new FileReader()
+                reader.onload = function() {
+                    var json = JSON.parse(reader.result)
+                    processJson(json)
+                }
+                reader.readAsText(ev.data)
+            }
+        }
+        function testing(event) {
+            console.log(event)
+        }
+        function processJson(json) {
+            var clazz = json['@class']
+            handlers = [
+                {
+                    '@class':
+                        'com.desdulianto.learning.imvertx.packet.LoginNotification',
+                    handler: loginNotif
+                },
+                {
+                    '@class':
+                        'com.desdulianto.learning.imvertx.packet.ConversationMessage',
+                        handler: conversation
+                }
+            ]
+
+            var handler = handlers.find(function(x) {return x['@class'] === clazz})
+            if (handler !== undefined)
+                handler.handler(json)
+            else
+                // buka web developer tool web console
+                console.log(json)
+        }
+
+        function loginNotif(json) {
+            alert(json.user.username + ' becomes online')
+        }
+        function conversation(json) {
+            console.log(json);
+        }
+
+        function sendMessage() {
+            var input = document.querySelector('#message')
+            var text = input.value
+            var loginMessage = {
+                '@class': 'com.desdulianto.learning.imvertx.packet.LoginMessage',
+                username: text,
+                password: ''
+            }
+            socket.send(JSON.stringify(loginMessage))
+            input.value = ''
+            input.focus()
+        }
+    </script>
+</body>
+</html>

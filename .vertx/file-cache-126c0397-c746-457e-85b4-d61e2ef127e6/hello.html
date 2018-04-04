@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <title>Title</title>
+    <style>
+        /* .col {
+            border: 1px solid black;
+        } */
+        .col .col-4 {
+            overflow: scroll;
+        }
+        .col {
+            padding: 0%;
+            border: 1px solid black;
+        }
+        /* .card {
+            height: 92vh;
+            overflow: scroll;
+        } */
+        .card .list-group .list-group-item:hover {
+            background-color: gray;
+            color: white;
+        }
+        .navbar .navbar-brand {
+            width: 100%;
+            text-align: center;
+        }
+        .navbar {
+            height: 8vh;
+        }
+        .chat-content {
+            height: 85Vh;
+        }
+        .no-padding {
+            padding: 0;
+        }
+        .input-group {
+            width: 98%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Start of Modal -->
+    <!-- Modal content-->
+    <div class="modal-content">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h4 class="modal-title">Modal Header</h4>
+        </div>
+        <div class="modal-body">
+            <input class="input-group" type="text" id="input-username">
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" onclick="sendLogin()" data-dismiss="modal">Ok</button>
+        </div>
+    </div>
+    <!-- End of Modal -->
+    <nav class="navbar navbar-light bg-light">
+        <div class="navbar-brand">Vertx Websocket Chat</div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-2 no-padding" style="height:92vh; overflow-y:scroll;">
+                <div class="card" style="width: 100%;">
+                    <div class="card-header">
+                        People
+                    </div>
+                    <ul id="user-list" class="list-group list-group-flush">
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-10 no-padding" style="overflow-x:hidden;">
+                <div id="chat-content" class="chat-content" style="overflow-y:scroll;">
+                    <div class="panel panel-default text-left">
+                        <div class="panel-heading">Me</div>
+                        <div class="panel-body">Panel Content</div>
+                    </div>
+                    <div class="panel panel-default text-right">
+                        <div class="panel-heading">Him/Her</div>
+                        <div class="panel-body">Panel Content</div>
+                    </div>
+                </div>
+                <div class="input-group" style="position: absolute; bottom:5px; margin-left:5px; margin-right:5px;">
+                    <input type="text" class="form-control" id="message" placeholder="Type a message" aria-label="Type a message" aria-describedby="basic-addon2">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" onclick="sendConversation()" type="button">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        var socket = new WebSocket("ws://localhost:8080")
+        var name
+        var chat_user
+        var chat_message
+        function addUserList(json) {
+            if(json['user']['username'] != window.name) {
+                list_container = document.getElementById("user-list")
+                var list = document.createElement("li")
+                list.id = json['user']['username']
+                list.innerHTML = json['user']['username']
+                list.className = "list-group-item"
+                list.onclick = function() {
+                    userSelected(list.id)
+                }
+                list_container.appendChild(list)
+            }
+        }
+        function userSelected(id) {
+            if(window.chat_user != null) {
+                idsementara = document.getElementById(window.chat_user)
+                idsementara.classList.toggle("active")
+            }
+            document.getElementById(id).classList.toggle("active")
+            window.chat_user = id
+        }
+        socket.onmessage = function (ev) {
+            console.log(ev.data);
+            if (ev.data instanceof Blob) {
+                var reader = new FileReader()
+                reader.onload = function() {
+                    var json = JSON.parse(reader.result)
+                    processJson(json)
+                }
+                reader.readAsText(ev.data)
+            }
+        }
+        function processJson(json) {
+            var clazz = json['@class']
+            handlers = [
+                {
+                    '@class':
+                        'com.desdulianto.learning.imvertx.packet.LoginNotification',
+                    handler: loginNotif
+                },
+                {
+                    '@class':
+                        'com.desdulianto.learning.imvertx.packet.LogoutNotification',
+                    handler: logoutNotif
+                },
+                {
+                    '@class':
+                        'com.desdulianto.learning.imvertx.packet.ConversationMessage',
+                        handler: conversation
+                },
+                {
+                    '@class':
+                        'com.desdulianto.learning.imvertx.packet.OnlineUsers',
+                    handler: onlineUsers    
+                }
+            ]
+
+            var handler = handlers.find(function(x) {return x['@class'] === clazz})
+            if (handler !== undefined)
+                handler.handler(json)
+            else
+                // buka web developer tool web console
+                console.log(json)
+        }
+        // Response handler
+        function loginNotif(json) {
+            addUserList(json)
+        }
+        function logoutNotif(json) {
+            // jika sedang buka chatroom target
+            if(json['user']['username'] == chat_user) {
+                wrapper = document.createElement('section')
+                wrapper.className = "mb-content wow fadeInUp text-left"
+                // Animasi ingat serach
+                // wrapper.datawowdelay = ".2s"
+                wrapper.innerHTML = "Offline"
+                document.getElementById("chatter").appendChild(wrapper)
+                document.getElementById("submit").disabled = true
+            }
+            var offlineUser = document.getElementById(json['user']['username'])            
+            var output = document.getElementById('menu')
+            output.removeChild(offlineUser)
+        }
+        function conversation(json) {
+            console.log(json);
+        }
+        function onlineUsers(json) {
+            json['users'].forEach(element => {
+                var list = document.createElement("li");
+                list.id = element['username']
+                list.className = "list-group-item"
+                list.innerHTML = element['username']
+                list.onclick = function() {
+                    // Ganti chat dengan user lain
+                    userSelected(list.id)
+                }
+                var list_container = document.getElementById('user-list')
+                console.log(list_container)
+                list_container.appendChild(list);
+            });
+        }
+        // Request 
+        function sendLogin() {
+            var input = document.querySelector('#input-username')
+            var text = input.value
+            var loginMessage = {
+                '@class': 'com.desdulianto.learning.imvertx.packet.LoginMessage',
+                username: text,
+                password: ''
+            }
+            window.name = text
+            socket.send(JSON.stringify(loginMessage))
+            this.requestOnlineUsers();
+            input.value = ''
+            input.focus()
+        }
+        function requestOnlineUsers() {
+            var requestMessage = {
+                '@class': 'com.desdulianto.learning.imvertx.packet.ListOnlineUsersMessage'
+            }
+            socket.send(JSON.stringify(requestMessage))
+        }
+    </script>
+</body>
+</html>
