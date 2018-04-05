@@ -34,6 +34,9 @@ public class IMVerticle extends AbstractVerticle {
         router.get("/css/bootstrap.min.css").handler(context -> {
             context.response().sendFile("bootstrap.min.css");
         });
+        router.get("/js/bootstrap.min.js").handler(context -> {
+            context.response().sendFile("bootstrap.min.js");
+        });
 
         httpServer.requestHandler(router::accept);
         httpServer.websocketHandler(socket -> new WSConnectionHandler(getVertx(), socket));
